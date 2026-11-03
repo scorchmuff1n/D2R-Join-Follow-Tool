@@ -23,7 +23,7 @@ Get the latest zip from the [Releases page](https://github.com/scorchmuff1n/D2R_
 - Click positions are calibrated for a 1648x924 game window.
 
 ## Running from source
-Requires Python 3 on Windows (uses only the standard library, tkinter included). Run `Launch_D2R_Join_Follow_Tool.bat` or `python D2R_Join_Follow_Tool.py`.
+Requires Python 3 on Windows and the `pyautogui` package (the launcher installs it for you if it is missing). Run `Launch_D2R_Join_Follow_Tool.bat` or `python D2R_Join_Follow_Tool.py`.
 
 ## License
 MIT, see [LICENSE](LICENSE).
