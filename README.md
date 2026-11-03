@@ -5,7 +5,9 @@ A small Windows helper for Diablo II: Resurrected that creates and joins numbere
 ![D2R Join/Follow Tool](screenshots/main-window.png)
 
 ## Download
-Get the latest zip from the [Releases page](https://github.com/scorchmuff1n/D2R_Join_Follow_Tool_v1.0/releases/latest), unzip it and run the tool.
+Download **D2R_Join_Follow_Tool.exe** from the [latest release](https://github.com/scorchmuff1n/D2R-Join-Follow-Tool/releases/latest) and run it. It's a single file and needs no Python install. (Windows SmartScreen may warn since it's unsigned; click More info > Run anyway.)
+
+The original zip is still available on the release page.
 
 ## Features
 - Set a game prefix, password, start number and difficulty
