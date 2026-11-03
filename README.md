@@ -2,6 +2,8 @@
 
 A small Windows helper for Diablo II: Resurrected that creates and joins numbered games (like `baal-1`, `baal-2`, ...) with one hotkey.
 
+![Demo: creates baal2, save and exit, auto-creates baal3](screenshots/demo.gif)
+
 ![D2R Join/Follow Tool](screenshots/main-window.png)
 
 ## Download
