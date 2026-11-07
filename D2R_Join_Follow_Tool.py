@@ -90,6 +90,13 @@ SAVE_EXIT_BUTTON = (824, 406)
 # Seconds to wait after Save and Exit before auto-creating the next game.
 DEFAULT_LOBBY_DELAY = 6
 
+# Join fail-safe: after clicking Join, wait this long, then check whether
+# the lobby is still showing (join failed). If so, retry.
+JOIN_CHECK_SECONDS = 5
+JOIN_MAX_RETRIES = 3
+# Region (base coords) around the Join button used to detect "still in lobby".
+JOIN_CHECK_BOX = (1160, 550, 200, 60)
+
 
 # =============================================================
 # WINDOWS GLOBAL HOTKEY SUPPORT
@@ -153,7 +160,7 @@ class D2RJoinFollowTool:
         self.root = root
 
         root.title("D2R Join/Follow Tool")
-        root.geometry("440x430")
+        root.geometry("440x455")
         self._apply_icon()
         self._apply_theme()
         root.resizable(False, False)
@@ -173,6 +180,7 @@ class D2RJoinFollowTool:
         self.auto_create = tk.BooleanVar(value=True)
         self.lobby_delay = tk.IntVar(value=DEFAULT_LOBBY_DELAY)
         self.end_leaves_first = tk.BooleanVar(value=True)
+        self.join_retry = tk.BooleanVar(value=True)
 
         self.is_running = False
         self.is_closing = False
@@ -362,6 +370,12 @@ class D2RJoinFollowTool:
             text="END leaves current game first (follow mode)",
             variable=self.end_leaves_first
         ).grid(row=8, column=0, columnspan=3, sticky="w", pady=(4, 0))
+
+        ttk.Checkbutton(
+            main,
+            text=f"Retry join if it fails (up to {JOIN_MAX_RETRIES}x)",
+            variable=self.join_retry
+        ).grid(row=9, column=0, columnspan=3, sticky="w")
 
         ttk.Button(
             main,
@@ -580,7 +594,45 @@ class D2RJoinFollowTool:
     # CREATE / JOIN AUTOMATION
     # ---------------------------------------------------------
 
-    def run_action(self, action, confirm=True):
+    # ---------------------------------------------------------
+    # JOIN FAIL-SAFE
+    # ---------------------------------------------------------
+
+    @staticmethod
+    def grab_join_box():
+        try:
+            x, y = D2RJoinFollowTool.scaled(JOIN_CHECK_BOX[:2])
+            w, h = D2RJoinFollowTool.scaled(JOIN_CHECK_BOX[2:])
+            return pyautogui.screenshot(region=(x, y, w, h)).convert("L").resize((40, 12))
+        except Exception as exc:
+            log(f"grab error: {exc!r}")
+            return None
+
+    @staticmethod
+    def images_similar(a, b, threshold=12):
+        if a is None or b is None:
+            return False
+        pa, pb = list(a.getdata()), list(b.getdata())
+        diff = sum(abs(x - y) for x, y in zip(pa, pb)) / len(pa)
+        log(f"join check diff={diff:.1f}")
+        return diff < threshold
+
+    def verify_join(self, number, lobby_snapshot, attempt):
+        if self.is_closing:
+            return
+        now = self.grab_join_box()
+        if not self.images_similar(lobby_snapshot, now):
+            log(f"join looks successful (attempt {attempt})")
+            self.start_number.set(number + 1)
+            return
+        if attempt >= JOIN_MAX_RETRIES:
+            log("join failed after max retries")
+            self.root.bell()
+            return
+        log(f"still in lobby, retrying join (attempt {attempt + 1})")
+        self.run_action("join", confirm=False, retry_attempt=attempt + 1)
+
+    def run_action(self, action, confirm=True, retry_attempt=0):
 
         if self.is_running:
             return
@@ -687,7 +739,21 @@ class D2RJoinFollowTool:
 
                 pyautogui.sleep(0.25)
 
+                lobby_snapshot = (
+                    self.grab_join_box() if self.join_retry.get() else None
+                )
+
                 self.click(JOIN_BUTTON)
+
+                if lobby_snapshot is not None:
+                    # Fail-safe: verify later; number increments on success.
+                    self.root.after(
+                        JOIN_CHECK_SECONDS * 1000,
+                        lambda: self.verify_join(
+                            number, lobby_snapshot, retry_attempt + 1
+                        )
+                    )
+                    return
 
             else:
                 raise ValueError(

@@ -20,7 +20,7 @@ The original zip is still available on the release page.
 | Key | Action |
 |-----|--------|
 | `HOME` | Create next game |
-| `END` | Save and exit current game, then join the next one (follow mode, can be turned off) |
+| `END` | Save and exit current game, then join the next one (follow mode, can be turned off). Retries the join up to 3 times if you are still in the lobby. |
 | `DELETE` | Save and exit (opens the ESC menu and clicks Save and Exit), then auto-create the next game |
 
 ## Notes
