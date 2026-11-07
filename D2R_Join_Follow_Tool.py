@@ -6,8 +6,8 @@ Use at your own risk. Not affiliated with Blizzard Entertainment.
 
 GLOBAL HOTKEYS:
     HOME   = Create next game
-    END    = Join next game
-    DELETE = Send ESC to open the in-game menu
+    END    = Save and exit current game, then join next (follow mode)
+    DELETE = Save and exit, then auto-create next game (host)
 
 GAME NAMING:
     tombs-1
@@ -153,7 +153,7 @@ class D2RJoinFollowTool:
         self.root = root
 
         root.title("D2R Join/Follow Tool")
-        root.geometry("440x400")
+        root.geometry("440x430")
         self._apply_icon()
         self._apply_theme()
         root.resizable(False, False)
@@ -172,6 +172,7 @@ class D2RJoinFollowTool:
 
         self.auto_create = tk.BooleanVar(value=True)
         self.lobby_delay = tk.IntVar(value=DEFAULT_LOBBY_DELAY)
+        self.end_leaves_first = tk.BooleanVar(value=True)
 
         self.is_running = False
         self.is_closing = False
@@ -356,6 +357,12 @@ class D2RJoinFollowTool:
             width=6
         ).grid(row=3, column=2, sticky="w")
 
+        ttk.Checkbutton(
+            main,
+            text="END leaves current game first (follow mode)",
+            variable=self.end_leaves_first
+        ).grid(row=8, column=0, columnspan=3, sticky="w", pady=(4, 0))
+
         ttk.Button(
             main,
             text="CREATE NEXT GAME",
@@ -412,7 +419,7 @@ class D2RJoinFollowTool:
 
         ttk.Label(
             hotkeys,
-            text="END        - Join next game",
+            text="END        - Save and exit, then join next game",
             foreground="#6c8cff"
         ).pack(anchor="w")
 
@@ -426,7 +433,7 @@ class D2RJoinFollowTool:
             main,
             text=(
                 "Hotkeys only work while D2R is the active window.\n"
-                "DELETE opens the ESC menu and clicks Save and Exit.\n"
+                "DELETE / END open the ESC menu and click Save and Exit.\n"
                 "Coordinates calibrated for 1648x924."
             ),
             justify="left",
@@ -482,7 +489,11 @@ class D2RJoinFollowTool:
             self.run_action("create", confirm=False)
 
         elif hotkey_id == HOTKEY_ID_JOIN:
-            self.run_action("join", confirm=False)
+            if self.end_leaves_first.get():
+                # Following: save and exit current game, then join next.
+                self.leave_game(next_action="join")
+            else:
+                self.run_action("join", confirm=False)
 
         elif hotkey_id == HOTKEY_ID_LEAVE:
             self.leave_game()
@@ -526,7 +537,7 @@ class D2RJoinFollowTool:
     # LEAVE GAME
     # ---------------------------------------------------------
 
-    def leave_game(self):
+    def leave_game(self, next_action="create"):
 
         if pyautogui is None:
             return
@@ -544,14 +555,14 @@ class D2RJoinFollowTool:
             pyautogui.sleep(0.5)
             self.click(SAVE_EXIT_BUTTON)
 
-            if self.auto_create.get():
+            if next_action == "join" or self.auto_create.get():
                 try:
                     delay = max(2, int(self.lobby_delay.get()))
                 except (ValueError, tk.TclError):
                     delay = DEFAULT_LOBBY_DELAY
                 self.root.after(
                     delay * 1000,
-                    lambda: self.run_action("create", confirm=False)
+                    lambda: self.run_action(next_action, confirm=False)
                 )
 
         except Exception as exc:
